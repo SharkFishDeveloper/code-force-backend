@@ -2,6 +2,18 @@ import express, { json } from "express";
 import cors from "cors";
 import axios from "axios";
 import { fileName,versions, fileExtensions, code_body } from "./util/code_body/code_body";
+
+
+interface contestBody {
+allproblems:number,
+contest:string,
+score:number,
+solvedProblems:number,
+time:number,
+user:string,
+username:string
+}
+
 // import { createClient } from "redis";
 
 // const redis = createClient();
@@ -83,7 +95,7 @@ app.post("/submit-code",async(req,res)=>{
     // }
     } catch (error) {
         console.log(error);
-        return res.status(400).json({messge:error})
+        return res.status(400).json({message:error})
     }
     // await redis.hSet(userId,{"code":code,"language":selectedLanguage}); 
     //   const redisPop = await redis.lPop();
@@ -92,4 +104,10 @@ app.post("/submit-code",async(req,res)=>{
 
       
 })
+
+app.get(`/contest/id`,async(req,res)=>{
+const userDate:contestBody = req.body; 
+console.log(userDate);
+})
+
 app.listen(4000,()=>console.log("Server running on 4000 !"))

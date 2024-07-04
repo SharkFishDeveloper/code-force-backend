@@ -40,10 +40,5 @@ const fileExtensions: Record<string, string> = {
  "rust":"rs"
 };
 
-// ,
-//     
-//     "java": "java",
-//     "typescript": "ts",
-//     "python": "py"
 
 export {versions,code_body,fileName,fileExtensions};

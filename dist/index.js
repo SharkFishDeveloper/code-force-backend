@@ -76,9 +76,13 @@ app.post("/submit-code", (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
     catch (error) {
         console.log(error);
-        return res.status(400).json({ messge: error });
+        return res.status(400).json({ message: error });
     }
     // await redis.hSet(userId,{"code":code,"language":selectedLanguage}); 
     //   const redisPop = await redis.lPop();
+}));
+app.get(`/contest/id`, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userDate = req.body;
+    console.log(userDate);
 }));
 app.listen(4000, () => console.log("Server running on 4000 !"));
