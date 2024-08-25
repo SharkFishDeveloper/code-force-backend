@@ -1,0 +1,25 @@
+version: '3'  # Use the Docker Compose file format version
+
+networks:
+  
+
+services:
+  my-redis:
+    image: redis:latest  # Replace with your actual image name and tag
+    ports:
+      - "6379:6379"
+    restart: always 
+
+  # leetforce:
+  #   image: leetforce:latest  # Replace with your actual image name and tag
+  #   ports:
+  #     - "3000:3000" 
+  #   restart: always
+
+    
+
+    #   dockerfile: piston_api
+  #   image: ghcr.io/engineer-man
+  #   container_name: piston_api
+  #   ports:
+  #     - "2000:2000"

@@ -4,7 +4,7 @@
   "description": "",
   "main": "./dist/index.js",
   "scripts": {
-    "backend": " docker start piston_api && node ./dist/index.js "
+    "backend": " docker start piston_api &&  node ./dist/index.js "
   },
   "keywords": [],
   "author": "",
