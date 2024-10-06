@@ -82,8 +82,9 @@ console.log(userData)
 const score = userData.score+userData.time;
 const userKey = userData.user;
 try {
+
     await redis.zAdd(`contest-${id}`, [{ score, value: JSON.stringify({ userKey, user: userData.username }) }]);
-    
+    await redis.expire(`contest-${id}`, 172800);
     const alldata = await redis.zRangeWithScores(`contest-${id}`, 0, -1); 
     console.log("#########",alldata)
     return res.json({message:"Submitted contest,now wait"})
@@ -95,12 +96,10 @@ try {
 
 app.get(`/contest/:user`, async (req, res) => {
     const { user } = req.params;
-  
+    console.log("HIT")
     try {
       const contestKeys = await redis.keys('contest-*'); // Get all keys matching
-      console.log(contestKeys)
         const userRanks:number[] = [];
-       console.log(contestKeys);
        for (const key of contestKeys) {
            const contestId = key.split('-')[1]; // Extract contest ID from key
            const contestData = await redis.zRangeWithScores(`contest-${contestId}`, 0, -1);
@@ -111,7 +110,7 @@ app.get(`/contest/:user`, async (req, res) => {
             }
         })
         }
-       console.log(userRanks);
+    //    console.log(userRanks);
        return res.status(200).json({contestKeys,userRanks,message:"Operation successfull"})
     } catch (error) {
       console.log('Error fetching user ranks:', error);
@@ -123,7 +122,7 @@ app.get(`/contest/:user`, async (req, res) => {
 app.post(`/contest/:id/data`, async (req, res) => {
     const id = req.params['id'];
     const {userId,user} = req.body; 
-
+   
     try {
         let userRankMessage = `User ${userId} not found in contest-${id}`;
         let foundUser = false;
@@ -197,7 +196,8 @@ app.post(`/contest/:id/data`, async (req, res) => {
 app.delete('/contest/delete/:id',async(req,res)=>{
    try {
     const id = req.params['id'];
-    await redis.zRemRangeByScore(`contest-${id}`, '-inf', '+inf');
+    const a = await redis.zRemRangeByScore(`contest-${id}`, '-inf', '+inf');
+    console.log(a)
     return res.json({message:`Successfully deleted contest-${id}`})
    } catch (error) {
     console.log(error);
