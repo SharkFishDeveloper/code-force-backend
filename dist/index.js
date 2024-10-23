@@ -15,8 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const axios_1 = __importDefault(require("axios"));
-const code_body_1 = require("./util/code_body/code_body");
 const redis_1 = require("redis");
+const PISTON_URL_1 = require("./util/PISTON_URL");
 const redis = (0, redis_1.createClient)();
 redis.on('error', (err) => console.log('Redis Client Error', err));
 function connectRedis() {
@@ -31,50 +31,64 @@ app.use(express_1.default.json());
 app.get("/", (req, res) => {
     return res.json({ message: "This is a get request" });
 });
+// {
+//     "language": "c",
+//     "code": "#include <stdio.h>\r\nint main() {    \r\n\r\n    int number1, number2, sum;\r\n    \r\n    printf(\"Enter two integers: \\");\r\n    scanf(\"%d %d\", &number1, &number2);\r\n\r\n    // calculate the sum\r\n    sum = number1 + number2;      \r\n    \r\n    printf(\"%d + %d = %d\", number1, number2, sum);\r\n    return 0;\r\n}\r\n",
+//     "stdin": "1\n100"
+//   }  
 app.post("/submit-code", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { code, selectedLanguage, userId } = req.body;
-        let selectedlanguage;
-        let version;
-        if (!code_body_1.versions.hasOwnProperty(selectedLanguage)) {
-            version = code_body_1.versions[selectedLanguage];
-            console.log("Please select any other language !!");
-            return res.status(300).json({ message: "Please select any other language !!" });
-        }
-        version = code_body_1.versions[selectedLanguage];
-        console.log("This reaches here !!");
-        if (selectedLanguage === "c++") {
-            selectedlanguage = "cpp";
-        }
-        else {
-            selectedlanguage = selectedLanguage;
-        }
-        var extension = code_body_1.fileExtensions[selectedlanguage];
-        const filename = `index.${extension}`;
-        console.log("This is file name ", filename, "version ", version);
-        let dummy_code = code_body_1.code_body;
-        dummy_code.language = selectedlanguage;
-        dummy_code.files[0].name = filename;
-        dummy_code.version = version;
-        dummy_code.files[0].content = code;
-        console.log(dummy_code);
-        const submit = yield axios_1.default.post("http://localhost:2000/api/v2/execute", code_body_1.code_body);
-        // console.log(submit.data);
-        return res.json({ message: "This reached herre", result: submit.data, userId });
+        const { code, selectedLanguage, userId, stdin } = req.body;
+        console.log("CODE", code, selectedLanguage, userId);
+        // let selectedlanguage ;
+        // let version;
+        // if(!versions.hasOwnProperty(selectedLanguage)){
+        //     version = versions[selectedLanguage];
+        //     console.log("Please select any other language !!");
+        //     return res.status(300).json({message:"Please select any other language !!"});
+        // }
+        // version = versions[selectedLanguage];
+        // console.log("This reaches here !!");
+        // if(selectedLanguage === "c++"){
+        //     selectedlanguage = "cpp"
+        // }else{
+        //     selectedlanguage = selectedLanguage;
+        // }
+        // var extension = fileExtensions[selectedlanguage];
+        // const filename = `index.${extension}`;
+        // console.log("This is file name ",filename,"version ",version);
+        // let dummy_code = code_body;
+        // dummy_code.language = selectedlanguage;
+        // dummy_code.files[0].name = filename;
+        // dummy_code.version = version;
+        // dummy_code.files[0].content = code;
+        // console.log(selectedLanguage)
+        const submit = yield axios_1.default.post(`${PISTON_URL_1.PISTON_URL}/submit-code`, { code, language: selectedLanguage, stdin });
+        // return res.json({message:"This reached herre",result:submit.data,userId})
+        // /return res.json({stdout:"",executionTime,stderr:stdout,language:lowerCaseLanguage})
+        //!for catalyst 
+        return res.json({
+            message: "Catalyst starts ",
+            result: submit.data.stdout,
+            executionTime: submit.data.executionTime,
+            stderr: submit.data.stderr,
+            userId
+        });
     }
     catch (error) {
-        console.log(error);
+        console.log("error");
         return res.status(400).json({ message: error });
     }
 }));
 app.post(`/contest/:id`, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("ME");
     const id = req.params['id'];
     const userData = req.body;
-    console.log(userData);
-    const score = userData.score + userData.time;
+    const score = userData.score;
     const userKey = userData.user;
     try {
         yield redis.zAdd(`contest-${id}`, [{ score, value: JSON.stringify({ userKey, user: userData.username }) }]);
+        yield redis.expire(`contest-${id}`, 172800);
         const alldata = yield redis.zRangeWithScores(`contest-${id}`, 0, -1);
         console.log("#########", alldata);
         return res.json({ message: "Submitted contest,now wait" });
@@ -84,12 +98,12 @@ app.post(`/contest/:id`, (req, res) => __awaiter(void 0, void 0, void 0, functio
         return res.status(500).json({ message: 'Internal Server Error' });
     }
 }));
-app.get(`/contest/:user`, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post(`/contest/all-contests/:user`, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("NOW ME");
     const { user } = req.params;
     try {
         const contestKeys = yield redis.keys('contest-*'); // Get all keys matching
         const userRanks = [];
-        console.log(contestKeys);
         for (const key of contestKeys) {
             const contestId = key.split('-')[1]; // Extract contest ID from key
             const contestData = yield redis.zRangeWithScores(`contest-${contestId}`, 0, -1);
@@ -100,15 +114,16 @@ app.get(`/contest/:user`, (req, res) => __awaiter(void 0, void 0, void 0, functi
                 }
             });
         }
-        console.log(userRanks);
+        //    console.log(userRanks);
         return res.status(200).json({ contestKeys, userRanks, message: "Operation successfull" });
     }
     catch (error) {
-        console.error('Error fetching user ranks:', error);
+        console.log('Error fetching user ranks:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
     }
 }));
-app.post(`/contest/:id/data`, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post(`/leaderboard/contest/:id/data`, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("NOW ME LEADERBOARD ->");
     const id = req.params['id'];
     const { userId, user } = req.body;
     try {
@@ -128,12 +143,12 @@ app.post(`/contest/:id/data`, (req, res) => __awaiter(void 0, void 0, void 0, fu
         });
         // try {
         contestData.slice(0, 10);
-        console.log(contestData.slice(0, 10));
+        // console.log(contestData.slice(0,10))
         // } catch (error) {
         //     console.log(error);
         // }
         if (foundUser) {
-            console.log("User found");
+            // console.log("User found")
             return res.json({ message: userRankMessage, contestData });
         }
         else {
@@ -181,12 +196,16 @@ app.get('/redis/details', (req, res) => __awaiter(void 0, void 0, void 0, functi
 app.delete('/contest/delete/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const id = req.params['id'];
-        yield redis.zRemRangeByScore(`contest-${id}`, '-inf', '+inf');
+        const a = yield redis.zRemRangeByScore(`contest-${id}`, '-inf', '+inf');
+        // console.log(a)
         return res.json({ message: `Successfully deleted contest-${id}` });
     }
     catch (error) {
-        console.log(error);
+        // console.log(error);
         return res.json({ message: `Error in deleting`, error });
     }
 }));
+app.get("/", (req, res) => {
+    return res.json({ message: "IT is running" });
+});
 app.listen(4000, () => console.log("Server running on 4000 !"));

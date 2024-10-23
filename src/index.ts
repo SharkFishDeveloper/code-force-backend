@@ -1,7 +1,8 @@
 import express, { json } from "express";
 import cors from "cors";
 import axios, { all } from "axios";
-import { fileName,versions, fileExtensions, code_body } from "./util/code_body/code_body";
+// import { fileName,versions, fileExtensions, code_body } from "./util/code_body/code_body";
+// import ip from "ip";
 
 
 interface contestBody {
@@ -30,7 +31,8 @@ connectRedis().catch(console.error);
 export interface submitReq {
     selectedLanguage:string,
     code:string,
-    userId:string
+    userId:string,
+    stdin?:string
 }
 
 
@@ -41,45 +43,70 @@ app.get("/",(req,res)=>{
     return res.json({message:"This is a get request"})
 })
 
+
+    // {
+    //     "language": "c",
+    //     "code": "#include <stdio.h>\r\nint main() {    \r\n\r\n    int number1, number2, sum;\r\n    \r\n    printf(\"Enter two integers: \\");\r\n    scanf(\"%d %d\", &number1, &number2);\r\n\r\n    // calculate the sum\r\n    sum = number1 + number2;      \r\n    \r\n    printf(\"%d + %d = %d\", number1, number2, sum);\r\n    return 0;\r\n}\r\n",
+    //     "stdin": "1\n100"
+    //   }  
+
+
 app.post("/submit-code",async(req,res)=>{
+
     try {
-    const {code,selectedLanguage,userId}:submitReq = req.body;
-    let selectedlanguage ;
-    let version;
-    if(!versions.hasOwnProperty(selectedLanguage)){
-        version = versions[selectedLanguage];
-        console.log("Please select any other language !!");
-        return res.status(300).json({message:"Please select any other language !!"});
-    }
-    version = versions[selectedLanguage];
-    console.log("This reaches here !!");
-    if(selectedLanguage === "c++"){
-        selectedlanguage = "cpp"
-    }else{
-        selectedlanguage = selectedLanguage;
-    }
-    var extension = fileExtensions[selectedlanguage];
+    const {code,selectedLanguage,userId,stdin}:submitReq = req.body;
+    console.log("CODE",code, selectedLanguage,userId)
+    // let selectedlanguage ;
+    // let version;
+    // if(!versions.hasOwnProperty(selectedLanguage)){
+    //     version = versions[selectedLanguage];
+    //     console.log("Please select any other language !!");
+    //     return res.status(300).json({message:"Please select any other language !!"});
+    // }
+    // version = versions[selectedLanguage];
+    // console.log("This reaches here !!");
+    // if(selectedLanguage === "c++"){
+    //     selectedlanguage = "cpp"
+    // }else{
+    //     selectedlanguage = selectedLanguage;
+    // }
+    // var extension = fileExtensions[selectedlanguage];
     
-    const filename = `index.${extension}`;
-    console.log("This is file name ",filename,"version ",version);
-    let dummy_code = code_body;
-    dummy_code.language = selectedlanguage;
-    dummy_code.files[0].name = filename;
-    dummy_code.version = version;
-    dummy_code.files[0].content = code;
-        const submit = await axios.post(`${PISTON_URL}/api/v2/execute`, code_body);
-        return res.json({message:"This reached herre",result:submit.data,userId})
+    // const filename = `index.${extension}`;
+    // console.log("This is file name ",filename,"version ",version);
+    // let dummy_code = code_body;
+    // dummy_code.language = selectedlanguage;
+    // dummy_code.files[0].name = filename;
+    // dummy_code.version = version;
+    // dummy_code.files[0].content = code;
+    // console.log(selectedLanguage)
+    
+             const submit = await axios.post(`${PISTON_URL}/submit-code`, 
+            {code,language:selectedLanguage,stdin});
+            
+            // return res.json({message:"This reached herre",result:submit.data,userId})
+
+
+            // /return res.json({stdout:"",executionTime,stderr:stdout,language:lowerCaseLanguage})
+        //!for catalyst 
+       return res.json({
+        message:"Catalyst starts ",
+        result:submit.data.stdout,
+        executionTime:submit.data.executionTime,
+        stderr:submit.data.stderr,
+        userId})
+
     } catch (error) {
-        console.log(error);
+        console.log("error");
         return res.status(400).json({message:error})
     }
 })
 
 app.post(`/contest/:id`,async(req,res)=>{
+    console.log("ME")
 const id = req.params['id']
 const userData:contestBody = req.body; 
-console.log(userData)
-const score = userData.score+userData.time;
+const score = userData.score;
 const userKey = userData.user;
 try {
 
@@ -94,9 +121,9 @@ try {
   }
 });
 
-app.get(`/contest/:user`, async (req, res) => {
+app.post(`/contest/all-contests/:user`, async (req, res) => {
+    console.log("NOW ME")
     const { user } = req.params;
-    console.log("HIT")
     try {
       const contestKeys = await redis.keys('contest-*'); // Get all keys matching
         const userRanks:number[] = [];
@@ -119,7 +146,8 @@ app.get(`/contest/:user`, async (req, res) => {
   });
 
 
-app.post(`/contest/:id/data`, async (req, res) => {
+app.post(`/leaderboard/contest/:id/data`, async (req, res) => {
+    console.log("NOW ME LEADERBOARD ->")
     const id = req.params['id'];
     const {userId,user} = req.body; 
    
@@ -140,14 +168,15 @@ app.post(`/contest/:id/data`, async (req, res) => {
         })
         // try {
             contestData.slice(0,10)
-            console.log(contestData.slice(0,10))
+            // console.log(contestData.slice(0,10))
         // } catch (error) {
         //     console.log(error);
         // }
         if (foundUser) {
-            console.log("User found")
+            // console.log("User found")
             return res.json({ message: userRankMessage,contestData });
           } else {
+            
             return res.json({ message: userRankMessage,contestData }); // Or handle not found case
           }
 
@@ -197,13 +226,16 @@ app.delete('/contest/delete/:id',async(req,res)=>{
    try {
     const id = req.params['id'];
     const a = await redis.zRemRangeByScore(`contest-${id}`, '-inf', '+inf');
-    console.log(a)
+    // console.log(a)
     return res.json({message:`Successfully deleted contest-${id}`})
    } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res.json({message:`Error in deleting`,error})
    }
 })
 
+app.get("/",(req,res)=>{
+    return res.json({message:"IT is running"})
+})
 
 app.listen(4000,()=>console.log("Server running on 4000 !"))
