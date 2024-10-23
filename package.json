@@ -5,7 +5,8 @@
   "main": "./dist/index.js",
   "scripts": {
     "dev": "tsc -b && node ./dist/index.js",
-    "backend": "docker-compose up -d  && npm run dev "
+    "prod":"node ./dist/index.js",
+    "backend": "docker-compose up -d  && npm run prod "
   },
   "keywords": [],
   "author": "",
