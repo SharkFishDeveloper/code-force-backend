@@ -44,50 +44,16 @@ app.get("/",(req,res)=>{
 })
 
 
-    // {
-    //     "language": "c",
-    //     "code": "#include <stdio.h>\r\nint main() {    \r\n\r\n    int number1, number2, sum;\r\n    \r\n    printf(\"Enter two integers: \\");\r\n    scanf(\"%d %d\", &number1, &number2);\r\n\r\n    // calculate the sum\r\n    sum = number1 + number2;      \r\n    \r\n    printf(\"%d + %d = %d\", number1, number2, sum);\r\n    return 0;\r\n}\r\n",
-    //     "stdin": "1\n100"
-    //   }  
-
 
 app.post("/submit-code",async(req,res)=>{
 
     try {
     const {code,selectedLanguage,userId,stdin}:submitReq = req.body;
     console.log("CODE",code, selectedLanguage,userId)
-    // let selectedlanguage ;
-    // let version;
-    // if(!versions.hasOwnProperty(selectedLanguage)){
-    //     version = versions[selectedLanguage];
-    //     console.log("Please select any other language !!");
-    //     return res.status(300).json({message:"Please select any other language !!"});
-    // }
-    // version = versions[selectedLanguage];
-    // console.log("This reaches here !!");
-    // if(selectedLanguage === "c++"){
-    //     selectedlanguage = "cpp"
-    // }else{
-    //     selectedlanguage = selectedLanguage;
-    // }
-    // var extension = fileExtensions[selectedlanguage];
-    
-    // const filename = `index.${extension}`;
-    // console.log("This is file name ",filename,"version ",version);
-    // let dummy_code = code_body;
-    // dummy_code.language = selectedlanguage;
-    // dummy_code.files[0].name = filename;
-    // dummy_code.version = version;
-    // dummy_code.files[0].content = code;
-    // console.log(selectedLanguage)
-    
+
              const submit = await axios.post(`${PISTON_URL}/submit-code`, 
             {code,language:selectedLanguage,stdin});
-            
-            // return res.json({message:"This reached herre",result:submit.data,userId})
 
-
-            // /return res.json({stdout:"",executionTime,stderr:stdout,language:lowerCaseLanguage})
         //!for catalyst 
        return res.json({
         message:"Catalyst starts ",
