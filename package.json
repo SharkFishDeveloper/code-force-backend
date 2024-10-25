@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsc -b && node ./dist/index.js",
     "prod":"node ./dist/index.js",
-    "backend": "docker-compose up -d  && npm run prod "
+    "start":" npx pm2 start ./dist/index.js",
+    "backend": "docker-compose up -d  && npm run start ",
+    "stop":"npx pm2 delete all"
   },
   "keywords": [],
   "author": "",
